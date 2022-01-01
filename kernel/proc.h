@@ -1,9 +1,13 @@
 // Saved registers for kernel context switches.
+//看起来是保存上下文信息的结构体
+// ref: https://zhuanlan.zhihu.com/p/295439950
 struct context {
+  // sp应该是存栈指针地址
+  // ra 存的是返回值地址
   uint64 ra;
   uint64 sp;
-
   // callee-saved
+  // callee-saved 寄存器在函数调用的时候会保存
   uint64 s0;
   uint64 s1;
   uint64 s2;
@@ -19,10 +23,11 @@ struct context {
 };
 
 // Per-CPU state.
+// 每个cpu的状态
 struct cpu {
   struct proc *proc;          // The process running on this cpu, or null.
   struct context context;     // swtch() here to enter scheduler().
-  int noff;                   // Depth of push_off() nesting.
+  int noff;                   // Depth of push_off() nesting. ??? 待补充
   int intena;                 // Were interrupts enabled before push_off()?
 };
 
@@ -80,15 +85,19 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
+//进程状态 { 未用 , 睡眠 , 就绪 ,  正在运行 , 僵尸 }
 enum procstate { UNUSED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
+// 每个进程的状态
 struct proc {
   struct spinlock lock;
 
+  // ？？？ 锁 待补充
   // p->lock must be held when using these:
-  enum procstate state;        // Process state
-  struct proc *parent;         // Parent process
+  
+  enum procstate state;        // Process state 进程状态
+  struct proc *parent;         // Parent process 父母进程
   void *chan;                  // If non-zero, sleeping on chan
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
@@ -103,4 +112,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  uint64 trace_mask;           // syscall_trace mask. 新加属性
 };

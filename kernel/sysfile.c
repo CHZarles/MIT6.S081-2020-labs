@@ -2,7 +2,9 @@
 // File-system system calls.
 // Mostly argument checking, since we don't trust
 // user code, and calls into file.c and fs.c.
-//
+// 文件系统的系统调用。
+// 主要是参数检查，因为我们不信任用户级的代码
+// 这里会调用并调用file.c和fs.c的函数
 
 #include "types.h"
 #include "riscv.h"
@@ -16,8 +18,11 @@
 #include "file.h"
 #include "fcntl.h"
 
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
+// 获取第n个 "字大小" 的系统调用参数作为文件描述符
+// 并返回描述符和相应的结构文件
 static int
 argfd(int n, int *pfd, struct file **pf)
 {
@@ -37,6 +42,8 @@ argfd(int n, int *pfd, struct file **pf)
 
 // Allocate a file descriptor for the given file.
 // Takes over file reference from caller on success.
+// 为给定的文件分配一个文件描述符。
+// 在调用成功时接管文件引用
 static int
 fdalloc(struct file *f)
 {
@@ -107,13 +114,18 @@ sys_close(void)
 uint64
 sys_fstat(void)
 {
+  // 指向文件的指针
   struct file *f;
   uint64 st; // user pointer to struct stat
-
+  // argfd是获取传入的第一个参数并将其作为文件描述符输出到f
+	// argaddr是获取传入的第二个参数并将其作为指针输出到st
   if(argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)
     return -1;
+  // 传入了file 和 一个指向 struct stat 的指针
+  // 
   return filestat(f, st);
 }
+
 
 // Create the path new as a link to the same inode as old.
 uint64
@@ -282,6 +294,8 @@ create(char *path, short type, short major, short minor)
 
   return ip;
 }
+
+
 
 uint64
 sys_open(void)
@@ -480,6 +494,28 @@ sys_pipe(void)
     p->ofile[fd1] = 0;
     fileclose(rf);
     fileclose(wf);
+    return -1;
+  }
+  return 0;
+}
+
+//Lab2 新添加的系统调用
+// 要加上头文件 sysinfo
+#include "sysinfo.h"
+uint64
+sys_sysinfo(void)
+{
+  uint64 info;
+  struct sysinfo si;
+  struct proc *p = myproc();
+
+  if(argaddr(0, &info) < 0) { // 获取指向传入的第一个参数的指针（0代表第一个参数，以此类推）
+    return -1;
+  }
+  si.freemem = collect_mem(); // 存入结构体si，以便将结构体si整体copyout
+  si.nproc = collect_proc();
+	// 调用copyout将si结构体copy到info指向的地址（用户空间），也就是从内核空间带用户空间
+  if(copyout(p->pagetable, info, (char *)&si, sizeof(si)) < 0) {
     return -1;
   }
   return 0;

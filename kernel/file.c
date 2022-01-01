@@ -84,16 +84,21 @@ fileclose(struct file *f)
 
 // Get metadata about file f.
 // addr is a user virtual address, pointing to a struct stat.
+// 获取文件f的元数据。
+// addr是一个用户虚拟地址，指向struct stat （ 个人感觉 struct stat 记录了文件的元状态）
 int
 filestat(struct file *f, uint64 addr)
 {
+  // 获取当前进程
   struct proc *p = myproc();
   struct stat st;
   
   if(f->type == FD_INODE || f->type == FD_DEVICE){
     ilock(f->ip);
-    stati(f->ip, &st);
+    stati(f->ip, &st); //<-  Copy stat information from inode
     iunlock(f->ip);
+    // 看起来是传入一个页表，一个虚拟地址，一个stat类型的指针(但强制转换了), stat结构体占用的内存大小
+    // 从 st结构体 复制 len 个字节 给 addr
     if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
       return -1;
     return 0;

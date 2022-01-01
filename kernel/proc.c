@@ -8,6 +8,7 @@
 
 struct cpu cpus[NCPU];
 
+//应该遍历这个结构体数组就能获得 nused 的进程数
 struct proc proc[NPROC];
 
 struct proc *initproc;
@@ -129,6 +130,23 @@ found:
 
   return p;
 }
+
+
+// 计算未使用的进程
+uint64
+collect_proc(void) 
+{
+  struct proc *p;
+  uint64 proc_num = 0;
+  for(p = proc; p < &proc[NPROC]; ++p) {
+    if(p->state != UNUSED) {
+      ++proc_num;
+    }
+  }
+  return proc_num;
+}
+
+
 
 // free a proc structure and the data hanging from it,
 // including user pages.
@@ -294,6 +312,8 @@ fork(void)
   pid = np->pid;
 
   np->state = RUNNABLE;
+
+  np->trace_mask = p->trace_mask; // copy trace_mask。***here！！！！***
 
   release(&np->lock);
 
